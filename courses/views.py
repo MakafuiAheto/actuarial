@@ -8,6 +8,8 @@ from rest_framework.views import APIView
 from .authentication.jwt_authentication import JWTAuthentication
 from courses.api.serializer import AuthorSerializer
 from .models import Author
+from django.core.cache import cache
+import json
 
 
 # Create your views here.
@@ -48,7 +50,7 @@ class AuthorRetrieveUpdate(APIView):
 
 
 class ObtainAuthorTokenView(APIView):
-    permission_classes = ('get_all_authors', )
+    permission_classes = ('get_all_authors',)
 
     def post(self, request):
         jwt_request = request.data
@@ -63,6 +65,12 @@ class ObtainAuthorsView(APIView):
     serializer_class = AuthorSerializer
 
     def get(self, request):
+
+        data = cache.get(key="authors")
+        if data:
+            data = json.loads(data)
+            return Response(data=data, status=status.HTTP_200_OK)
+
         jwt_authenticator = JWTAuthentication('Author', request.data)
         jwt_response, payload = jwt_authenticator.authenticate(request)
 
@@ -70,7 +78,10 @@ class ObtainAuthorsView(APIView):
             return Response({'message': 'Not Authenticated'}, status=status.HTTP_204_NO_CONTENT)
 
         serializer = self.serializer_class(Author.objects.all(), many=True)
-        return Response({'data': serializer.data, 'payload': payload}, status=status.HTTP_200_OK)
+        data = serializer.data
+        cache.set(key="authors", value=json.dumps(data))
+
+        return Response(data, status=status.HTTP_200_OK)
 
 
 @api_view(['POST'])

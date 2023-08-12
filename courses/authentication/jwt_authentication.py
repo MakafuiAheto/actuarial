@@ -13,16 +13,21 @@ from courses.Exceptions.Exceptions import TypeErrorException, FieldErrorExceptio
 
 class JWTAuthentication(authentication.BaseAuthentication):
 
-    def __init__(self, user_model_name='Author', user_class=None):
+    def __init__(self, user_model_name: str ='Author', user_class=None, token: jwt =None):
         self.user_model_name = user_model_name
         self.user_class = user_class
+        self.token = token
 
     def authenticate(self, request):
-        jwt_token = request.META.get('HTTP_AUTHORIZATION')
-        if jwt_token is None:
-            return None
 
-        jwt_token = self.get_the_token_from_header(jwt_token)
+        if self.token is None:
+            jwt_token = request.META.get('HTTP_AUTHORIZATION')
+            if jwt_token is None:
+                raise AuthenticationFailed('Authentication Failed')
+
+            jwt_token = self.get_the_token_from_header(jwt_token)
+        else:
+            jwt_token = self.token
 
         try:
             payload = jwt.decode(jwt_token, settings.SECRET_KEY, algorithms=['HS256'])
@@ -71,7 +76,7 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
         return jwt_token
 
-    def get_the_token_from_header(self, token):
+    def get_the_token_from_header(self, token: jwt):
         token = token.replace('Bearer', '').replace('', '')
         return token
 

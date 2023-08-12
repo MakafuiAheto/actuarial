@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure-)t5^5mqwi45mffw_(dl2bh59e4$&!0qhcxh9f_n6qtq*2#!t9%
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 # INTERNAL_IPS = [
 #     '127.0.0.1',
@@ -47,13 +47,15 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'debug_toolbar'
+    'debug_toolbar',
+    'corsheaders'
 ]
 
 MIDDLEWARE = [
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -160,9 +162,12 @@ CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
         "LOCATION": "redis://127.0.0.1:6379/1",
-        "TIMEOUT": 60*10,
+        "TIMEOUT": 60*5,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
          }
     }
 }
+
+# CORS_ORIGIN_ALLOW_ALL = True
+# CORS_ALLOW_CREDENTIALS = True

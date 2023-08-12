@@ -4,7 +4,8 @@ import uuid
 
 from django.contrib.gis.db import models
 from django.db import transaction
-from .utility import (AreaOfSpecialization, Gender, Permissions, AuthorPermissionExceptions)
+from .utility import (AreaOfSpecialization, Gender, Permissions,
+                      AuthorPermissionExceptions, StudentPermissionExceptions)
 from django.core import validators
 from .Exceptions.Exceptions import IncorrectEmailError, SaveUserError
 
@@ -19,6 +20,11 @@ INDUSTRY = ((area.title, area.industry) for area in AreaOfSpecialization)
 AUTHOR_EXCEPTIONS = [exception.value for exception in AuthorPermissionExceptions]
 AUTHOR_PERMISSIONS = [(permission.key, permission.result) for permission in Permissions
                       if (permission.key, permission.result) not in AUTHOR_EXCEPTIONS]
+
+# Student permissions and exceptions
+STUDENT_EXCEPTIONS = [exception.value for exception in StudentPermissionExceptions]
+STUDENT_PERMISSIONS = [(permission.key, permission.result) for permission in Permissions
+                       if (permission.key, permission.result) not in STUDENT_EXCEPTIONS]
 
 
 # Create your models here..3
@@ -71,14 +77,13 @@ class User(AbstractBaseUser, PermissionsMixin, CommonFields):
 
 
 class Author(User):
-    author_ID = models.UUIDField(primary_key=True, default=uuid.uuid4, auto_created=True, editable=False)
-    image = models.ImageField(upload_to="upload/images", default="img.png")
+    author_ID = models.UUIDField(primary_key=True, default=uuid.uuid4(), auto_created=True, editable=False)
+    image = models.ImageField(upload_to="Users/makafuiaheto/Desktop/Felicia/author_images", default="img.png")
     gender = models.CharField(default='', choices=GENDER)
     author_Bio = models.TextField(default='')
 
     class Meta:
         verbose_name = "Authors"
-        permissions = AUTHOR_PERMISSIONS
 
     def __init__(self, *args, **kwargs):
         super(Author, self).__init__(*args, **kwargs)
@@ -90,8 +95,8 @@ class Author(User):
 
 
 class Student(User):
-    student_ID = models.UUIDField(primary_key=True, auto_created=True, editable=False)
-    image = models.ImageField(upload_to="upload/images", default="/img.png")
+    student_ID = models.UUIDField(primary_key=True, default=uuid.uuid4(), auto_created=True, editable=False)
+    image = models.ImageField(upload_to="upload/images", default="img.png")
     gender = models.CharField(default='', choices=GENDER)
     next_Subscription_Payment_Date = models.DateTimeField()
 
@@ -100,7 +105,7 @@ class Student(User):
 
 
 class Course(CommonFields):
-    course_ID = models.UUIDField(primary_key=True, auto_created=True, editable=False)
+    course_ID = models.UUIDField(primary_key=True, default=uuid.uuid4(), auto_created=True, editable=False)
     course_Name = models.CharField(default='', max_length=200, null=False)
     description = models.TextField(max_length=5000, editable=True)
     specialist_area = models.TextField(default='', choices=INDUSTRY)
@@ -113,11 +118,13 @@ class Course(CommonFields):
 
 
 class Video(CommonFields):
-    video_ID = models.UUIDField(primary_key=True, auto_created=True, editable=False)
+    video_ID = models.UUIDField(primary_key=True, default=uuid.uuid4(), auto_created=True, editable=False)
     title = models.CharField(max_length=254)
 
-    video_URL = models.SlugField()
+    video_URL = models.URLField()
     video_Description = models.TextField(max_length=500)
+    video_ThumbNail = models.ImageField(upload_to="Users/makafuiaheto/Desktop/Felicia/thumbNail_images",
+                                        default="img.ing")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="course_rel")
 
     class Meta:
@@ -125,7 +132,7 @@ class Video(CommonFields):
 
 
 class Comments(CommonFields):
-    comment_ID = models.UUIDField(primary_key=True, auto_created=True, editable=False)
+    comment_ID = models.UUIDField(primary_key=True, default=uuid.uuid4(), auto_created=True, editable=False)
     comment = models.TextField()
     video = models.ForeignKey(Video, on_delete=models.CASCADE, related_name='video_rel')
 

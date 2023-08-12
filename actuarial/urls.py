@@ -20,6 +20,5 @@ import debug_toolbar
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('courses/', include(('courses.api.urls', 'courses'), namespace='courses'), name='courses'),
-    # path('__debug__/', include(debug_toolbar.urls))
+    path('courses/', include(('courses.api.urls', 'courses'), namespace='courses')),
 ]

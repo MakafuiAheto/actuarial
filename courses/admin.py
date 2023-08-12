@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.contrib.gis.admin import OSMGeoAdmin
 from .models import (Author, Student, Video, Course, Comments)
+from django.contrib.auth.models import Group, User, Permission
 
 
 # Register your models here.
@@ -28,3 +29,7 @@ class CourseAdmin(OSMGeoAdmin):
 @admin.register(Comments)
 class CommentsAdmin(OSMGeoAdmin):
     list_display = ('comment',)
+
+admin.site.register(User)
+admin.site.register(Permission)
+

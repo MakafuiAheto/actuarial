@@ -1,34 +1,78 @@
-from django.contrib.auth.decorators import permission_required
+from rest_framework import serializers
+from django.contrib.auth.mixins import PermissionRequiredMixin
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view
 from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .authentication.jwt_authentication import JWTAuthentication
-from courses.api.serializer import AuthorSerializer
-from .models import Author
+from courses.api.serializer import AuthorSerializer, StudentSerializer
+from .models import Author, Student, User
 from django.core.cache import cache
 import json
 
 
+def return_all_data_with_cache(request, cache_key: str, user_model_name: str,
+                               serializer_class: serializers.ModelSerializer):
+    data = cache.get(key=cache_key)
+    if data:
+        data = json.loads(data)
+        return Response(data=data, status=status.HTTP_200_OK)
+
+    jwt_authenticator = JWTAuthentication(user_model_name, request.data)
+    jwt_response, payload = jwt_authenticator.authenticate(request)
+
+    if jwt_response is None:
+        return Response({'message': 'Not Authenticated'}, status=status.HTTP_204_NO_CONTENT)
+
+    serializer = serializer_class(Author.objects.all(), many=True)
+    data = serializer.data
+    cache.set(key=cache_key, value=json.dumps(data))
+
+    return data
+
+
 # Create your views here.
 class CreateAuthorAPIView(APIView):
-    permission_classes = (AllowAny,)
+    # permission_classes = (AllowAny,)
 
     def post(self, request):
         user = request.data
         serializer = AuthorSerializer(data=user)
         serializer.is_valid(raise_exception=True)
 
-        jwt_authentication = JWTAuthentication("Author", serializer.validated_data)
-        jwt_token = jwt_authentication.create_jwt()
-
         serializer.save()
 
-        return Response({'message': 'Success', 'username': request.data.get('email'),
-                         'token': jwt_token},
+        return Response({'message': 'User created successfully'},
                         status=status.HTTP_201_CREATED)
+
+
+class LoginUserView(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+
+        user = User.objects.filter(username=username, password=password)
+
+        if user is None:
+            raise AuthenticationFailed('User not found')
+        if not user.check_password(password):
+            raise AuthenticationFailed('User not found')
+
+        jwt_authentication = JWTAuthentication("User", request.data)
+
+        jwt_token = jwt_authentication.create_jwt()
+
+        response = Response()
+
+        response.set_cookie(key='jwt', value=jwt_token, httponly=True)
+        response.status_code(status.HTTP_200_OK)
+
+        return response
 
 
 class AuthorRetrieveUpdate(APIView):
@@ -50,37 +94,35 @@ class AuthorRetrieveUpdate(APIView):
 
 
 class ObtainAuthorTokenView(APIView):
-    permission_classes = ('get_all_authors',)
 
     def post(self, request):
+        token = request.COOKIES.get('jwt')
+
+        if not token:
+            raise AuthenticationFailed('Unauthenticated')
+
         jwt_request = request.data
         author = Author.objects.filter(email=jwt_request.get("data"))
-        jwt_authentication_request = JWTAuthentication("Author", author)
+        jwt_authentication_request = JWTAuthentication("Author", author, token=token)
         response, payload = jwt_authentication_request.authenticate(request=request)
 
         return Response({'message': 'Authenticated', 'body': response}, status=status.HTTP_202_ACCEPTED)
 
 
-class ObtainAuthorsView(APIView):
+class ObtainAuthorsView(PermissionRequiredMixin, APIView):
+    permission_required = 'courses.author.view_author'
     serializer_class = AuthorSerializer
 
     def get(self, request):
+        data = return_all_data_with_cache(request, "author", 'Author', serializer_class=self.serializer_class)
+        return Response(data, status=status.HTTP_200_OK)
 
-        data = cache.get(key="authors")
-        if data:
-            data = json.loads(data)
-            return Response(data=data, status=status.HTTP_200_OK)
 
-        jwt_authenticator = JWTAuthentication('Author', request.data)
-        jwt_response, payload = jwt_authenticator.authenticate(request)
+class ObtainStudentsView(APIView):
+    serializer_class = StudentSerializer
 
-        if jwt_response is None:
-            return Response({'message': 'Not Authenticated'}, status=status.HTTP_204_NO_CONTENT)
-
-        serializer = self.serializer_class(Author.objects.all(), many=True)
-        data = serializer.data
-        cache.set(key="authors", value=json.dumps(data))
-
+    def get(self, request):
+        data = return_all_data_with_cache(request, "student", 'Student', serializer_class=self.serializer_class)
         return Response(data, status=status.HTTP_200_OK)
 
 

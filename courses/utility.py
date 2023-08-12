@@ -26,7 +26,7 @@ class Permissions(enum.Enum):
     create_author = ("create_new_author", "create_new_author")
     edit_author = ("edit_author", "edit_author")
     get_authors = ("get_all_authors", "get_all_authors")
-    delete_author = ("delete_author_details","delete_author_details")
+    delete_author = ("delete_author_details", "delete_author_details")
     delete_authors = ("delete_authors", "delete_authors")
 
     # video permissions
@@ -41,6 +41,7 @@ class Permissions(enum.Enum):
     delete_comment = ("delete_comment", "delete_comment")
     get_comments = ("get_all_videos", "get_all_videos")
     get_comment = ("get_comment", "get_comment")
+    delete_comments = ("delete_all_comments", "delete_all_comments")
 
     def __init__(self, key, result):
         self.key = key
@@ -49,3 +50,14 @@ class Permissions(enum.Enum):
 
 class AuthorPermissionExceptions(enum.Enum):
     delete_authors = Permissions.delete_authors
+
+
+class StudentPermissionExceptions(enum.Enum):
+    create_author = Permissions.create_author
+    edit_author = Permissions.edit_author
+    delete_authors = Permissions.delete_authors
+    delete_author = Permissions.delete_author
+    create_video = Permissions.create_video
+    delete_video = Permissions.delete_video
+    edit_video = Permissions.edit_video
+    delete_comments = Permissions.delete_comments
